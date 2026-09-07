@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MemScope - Virtual Memory Management Simulator</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <header>
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fa-solid fa-memory"></i> MemScope
+            </div>
+            <div class="subtitle">Virtual Memory Management Simulator</div>
+        </div>
+        <div class="header-actions">
+            <button id="theme-toggle" class="icon-btn" title="Toggle Dark/Light Mode"><i class="fa-solid fa-sun"></i></button>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- Input Panel -->
+        <section class="card glass-card input-panel">
+            <h2>Simulation Setup</h2>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="frames">Number of Frames</label>
+                    <input type="number" id="frames" min="1" max="10" value="3">
+                </div>
+                <div class="input-group flex-2">
+                    <label for="reference-string">Page Reference String (comma-separated)</label>
+                    <input type="text" id="reference-string" placeholder="e.g., 7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1" value="7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1">
+                </div>
+                <div class="input-group">
+                    <label for="algorithm">Algorithm</label>
+                    <select id="algorithm">
+                        <option value="fifo">FIFO</option>
+                        <option value="lru">LRU</option>
+                        <option value="optimal">Optimal</option>
+                        <option value="lfu">LFU</option>
+                    </select>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button id="run-sim" class="btn primary-btn"><i class="fa-solid fa-play"></i> Run Simulation</button>
+                <button id="compare-algs" class="btn secondary-btn"><i class="fa-solid fa-code-compare"></i> Compare Algorithms</button>
+                <button id="reset-sim" class="btn outline-btn"><i class="fa-solid fa-rotate-right"></i> Reset</button>
+            </div>
+            <div class="recent-simulations">
+                <span>Recent: </span>
+                <div id="recent-list">
+                    <!-- Badges injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Simulation View -->
+        <div id="simulation-view" class="view-section hidden">
+            <!-- Stats Dashboard -->
+            <section class="stats-dashboard">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Pages</h3>
+                        <p id="stat-total">0</p>
+                    </div>
+                </div>
+                <div class="stat-card hit-card">
+                    <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Hits</h3>
+                        <p id="stat-hits">0</p>
+                    </div>
+                </div>
+                <div class="stat-card fault-card">
+                    <div class="stat-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Faults</h3>
+                        <p id="stat-faults">0</p>
+                    </div>
+                </div>
+                <div class="stat-card hit-ratio-card">
+                    <div class="stat-icon"><i class="fa-solid fa-percent"></i></div>
+                    <div class="stat-info">
+                        <h3>Hit Ratio</h3>
+                        <p id="stat-hit-ratio">0%</p>
+                    </div>
+                </div>
+                <div class="stat-card fault-ratio-card">
+                    <div class="stat-icon"><i class="fa-solid fa-percent"></i></div>
+                    <div class="stat-info">
+                        <h3>Fault Ratio</h3>
+                        <p id="stat-fault-ratio">0%</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real-time Visualization -->
+            <section class="card visualization-panel">
+                <h2>Real-Time Visualization</h2>
+                <div class="viz-controls">
+                    <button id="step-prev" class="btn icon-btn" disabled><i class="fa-solid fa-backward-step"></i></button>
+                    <span id="step-counter" class="badge">Step 0 / 0</span>
+                    <button id="step-next" class="btn icon-btn" disabled><i class="fa-solid fa-forward-step"></i></button>
+                    <button id="play-pause" class="btn icon-btn" disabled><i class="fa-solid fa-play"></i></button>
+                    <div class="speed-control">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <input type="range" id="speed-slider" min="100" max="2000" value="800" title="Animation Speed">
+                    </div>
+                </div>
+                <div class="viz-area">
+                    <div class="incoming-page">
+                        <div class="page-label">Incoming Page</div>
+                        <div id="viz-incoming" class="page-box empty">-</div>
+                    </div>
+                    <div class="arrow"><i class="fa-solid fa-arrow-right-long"></i></div>
+                    <div class="frames-container" id="viz-frames">
+                        <!-- Frames will be generated here -->
+                    </div>
+                    <div class="status-indicator">
+                        <div id="viz-status" class="status-badge">Waiting</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Simulation Table -->
+            <section class="card table-panel">
+                <h2>Simulation Table</h2>
+                <div class="table-responsive">
+                    <table id="sim-table">
+                        <thead>
+                            <tr id="sim-table-head">
+                                <!-- Headers generated dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody id="sim-table-body">
+                            <!-- Rows generated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Comparison View -->
+        <div id="comparison-view" class="view-section hidden">
+            <section class="card comparison-table-panel">
+                <div class="section-header">
+                    <h2>Algorithm Comparison</h2>
+                    <div class="comp-actions">
+                        <button id="export-pdf" class="btn secondary-btn"><i class="fa-solid fa-file-pdf"></i> Export Results</button>
+                        <button id="back-to-sim" class="btn outline-btn"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                    </div>
+                </div>
+                
+                <div id="best-algorithm-card" class="highlight-card">
+                    <h3>Best Performing Algorithm</h3>
+                    <p id="best-alg-name" class="best-name">-</p>
+                    <div class="best-stats">
+                        <span>Page Faults: <strong id="best-alg-faults">0</strong></span>
+                        <span>Hit Ratio: <strong id="best-alg-ratio">0%</strong></span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="comp-table">
+                        <thead>
+                            <tr>
+                                <th>Algorithm</th>
+                                <th>Page Hits</th>
+                                <th>Page Faults</th>
+                                <th>Hit Ratio (%)</th>
+                                <th>Fault Ratio (%)</th>
+                                <th>Best Use Case</th>
+                                <th>Exec Time (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comp-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section class="charts-panel">
+                <div class="card chart-card">
+                    <h2>Page Faults Comparison</h2>
+                    <div class="chart-container">
+                        <canvas id="faultsChart"></canvas>
+                    </div>
+                </div>
+                <div class="card chart-card">
+                    <h2>Page Hits Comparison</h2>
+                    <div class="chart-container">
+                        <canvas id="hitsChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Educational Section -->
+        <section class="educational-section">
+            <section class="card complexity-section">
+                <div class="collapsible-header" id="complexity-header">
+                    <h3><i class="fa-solid fa-stopwatch"></i> Algorithm Complexity</h3>
+                    <i class="fa-solid fa-chevron-down chevron-icon"></i>
+                </div>
+                <div class="collapsible-content hidden" id="complexity-content">
+                    <div class="complexity-grid">
+                        <div class="complexity-item"><strong>FIFO:</strong> O(n)</div>
+                        <div class="complexity-item"><strong>LRU:</strong> O(n)</div>
+                        <div class="complexity-item"><strong>Optimal:</strong> O(n²)</div>
+                        <div class="complexity-item"><strong>LFU:</strong> O(n log n)</div>
+                    </div>
+                </div>
+            </section>
+
+            <h2 class="section-title"><i class="fa-solid fa-graduation-cap"></i> Learning Hub</h2>
+            <div class="edu-grid">
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-microchip"></i></div>
+                    <h3>Virtual Memory</h3>
+                    <p>A memory management technique that creates an illusion of a very large memory, providing an idealized abstraction of storage resources.</p>
+                </div>
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-layer-group"></i></div>
+                    <h3>Pages & Frames</h3>
+                    <p><strong>Page:</strong> Logical memory is divided into blocks of the same size.<br><strong>Frame:</strong> Physical memory is divided into fixed-sized blocks.</p>
+                </div>
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <h3>Page Fault</h3>
+                    <p>Occurs when a program attempts to access a block of memory not currently in physical memory, requiring the OS to fetch it from secondary storage.</p>
+                </div>
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+                    <h3>FIFO Algorithm</h3>
+                    <p><strong>First In First Out:</strong> The simplest page-replacement algorithm. When a page must be replaced, the oldest page is chosen.</p>
+                </div>
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <h3>LRU Algorithm</h3>
+                    <p><strong>Least Recently Used:</strong> Replaces the page that has not been used for the longest period of time.</p>
+                </div>
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <h3>Optimal Algorithm</h3>
+                    <p><strong>Optimal Page Replacement:</strong> Replaces the page that will not be used for the longest time in the future. Has the lowest fault rate but is impossible in practice.</p>
+                </div>
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-arrow-down-9-1"></i></div>
+                    <h3>LFU Algorithm</h3>
+                    <p><strong>Least Frequently Used:</strong> Replaces the page with the smallest count of accesses, based on frequency.</p>
+                </div>
+                <div class="card edu-card">
+                    <div class="edu-icon"><i class="fa-solid fa-lightbulb"></i></div>
+                    <h3>Why Page Replacement Matters</h3>
+                    <p>Page replacement algorithms help operating systems efficiently utilize limited physical memory by deciding which pages should be replaced when memory becomes full.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>MemScope &copy; 2026 - Educational Tool for OS Memory Management</p>
+        <p class="footer-tech">Technologies Used: HTML &bull; CSS &bull; JavaScript &bull; Chart.js</p>
+    </footer>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- App Logic -->
+    <script src="script.js"></script>
+</body>
+</html>
